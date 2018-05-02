@@ -21,6 +21,7 @@ from dataset import ImageFilelist
 from utils import generate_batch_images
 import model
 from pytorch_ssim import SSIM
+from pytorch_msssim import MSSSIM
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -82,6 +83,8 @@ if __name__ == "__main__":
     D_optimizer = torch.optim.SGD(D.parameters(), lr=1e-3)
 
     G_criterion = torch.nn.BCEWithLogitsLoss().cuda(0)
+    G_l1 = torch.nn.L1Loss().cuda(0)
+    G_msssim = MSSSIM().cuda(0)
     G_ssim = SSIM().cuda(0)
     G_optimizer = torch.optim.Adam(G.parameters(), lr=1e-3)
 
@@ -96,7 +99,7 @@ if __name__ == "__main__":
     train_d = True
     train_g = True
 
-    conditional_training = False
+    conditional_training = True
     for epoch in tqdm(range(epochs)):
         for i, (image, label) in enumerate(data_loader):
             if conditional_training:
@@ -157,7 +160,13 @@ if __name__ == "__main__":
                 fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_().cuda(0)
 
                 ae_images = G(Variable(input_label.float()), Variable(fake_noise))
-                ae_loss = G_ssim(ae_images, Variable(image.cuda(0)))
+                #l1_loss = G_l1(ae_images, Variable(image.cuda(0)))
+                ae_loss = G_msssim(ae_images, Variable(image.cuda(0)))
+                
+                if np.isnan(torch.mean(ae_loss.data)):
+                    ae_loss = G_ssim(ae_images, Variable(image.cuda(0)))
+
+                #ae_loss = l1_loss - ae_loss
                 ae_loss.backward()
                 G_optimizer.step()
 
