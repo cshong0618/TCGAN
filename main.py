@@ -47,6 +47,7 @@ def parse_args():
     return args
 
 if __name__ == "__main__":
+    torch.backends.cudnn.enabled=False
     args = parse_args()
 
     #Params
@@ -62,7 +63,7 @@ if __name__ == "__main__":
     learning_rate = 1e-3
 
     dataset = ImageFilelist("./data", "../Textures/texture_list_sample_50", transforms.Compose([
-        transforms.Grayscale(),
+        #transforms.Grayscale(),
         transforms.ToTensor()
     ]))
     data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=True)
@@ -73,11 +74,15 @@ if __name__ == "__main__":
     D.apply(weights_init)
     G.apply(weights_init)
 
-    D_criterion = torch.nn.BCEWithLogitsLoss()
+    D.cuda(0)
+    G.cuda(0)
+    print(D)
+    print(G)
+    D_criterion = torch.nn.BCEWithLogitsLoss().cuda(0)
     D_optimizer = torch.optim.SGD(D.parameters(), lr=1e-3)
 
-    G_criterion = torch.nn.BCEWithLogitsLoss()
-    G_ssim = SSIM()
+    G_criterion = torch.nn.BCEWithLogitsLoss().cuda(0)
+    G_ssim = SSIM().cuda(0)
     G_optimizer = torch.optim.Adam(G.parameters(), lr=1e-3)
 
     pathlib.Path(sample_output).mkdir(parents=True, exist_ok=True)
@@ -109,9 +114,9 @@ if __name__ == "__main__":
             G_optimizer.zero_grad()
 
             if train_d:
-                real_output = D(image)
-                one_hot_label = torch.from_numpy((np.arange(6) == (label.numpy()[:, None])).astype(float)).float()
-                real_loss = D_criterion(real_output, one_hot_label)
+                real_output = D(Variable(image.cuda(0)))
+                one_hot_label = torch.from_numpy((np.arange(6) == (label.numpy()[:, None])).astype(float)).float().cuda(0)
+                real_loss = D_criterion(real_output, Variable(one_hot_label))
                 real_loss.backward()
                 D_optimizer.step()
 
@@ -120,12 +125,12 @@ if __name__ == "__main__":
                 
                 fake_label_input = (np.arange(5) == (G_fake_label[:,None])).astype(float)
                 fake_label_output = (np.arange(6) == (fake_label[:,None])).astype(float)
-                noise = torch.FloatTensor(len(image), 48, 5, 5).normal_()
+                noise = torch.FloatTensor(len(image), 48, 5, 5).normal_().cuda(0)
 
-                fake_images = G(torch.from_numpy(fake_label_input).float(), noise)
+                fake_images = G(Variable(torch.from_numpy(fake_label_input).float().cuda(0)), Variable(noise))
                 fake_output = D(fake_images.detach())
 
-                fake_loss = D_criterion(fake_output, torch.from_numpy(fake_label_output).float())
+                fake_loss = D_criterion(fake_output, Variable(torch.from_numpy(fake_label_output).float().cuda(0)))
                 fake_loss.backward()
                 D_optimizer.step()
 
@@ -135,24 +140,24 @@ if __name__ == "__main__":
             if train_g:
                 fake_label = np.random.randint(0, 5, len(image))
                 fake_label_input = (np.arange(5) == (fake_label[:,None])).astype(float)
-                fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_()
+                fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_().cuda(0)
 
-                generated_images = G(torch.from_numpy(fake_label_input).float(), fake_noise)
+                generated_images = G(Variable(torch.from_numpy(fake_label_input).float().cuda(0)), Variable(fake_noise))
                 generated_output = D(generated_images.detach())
 
                 target_label = (np.arange(6) == (fake_label[:,None])).astype(float)
-                generator_loss = G_criterion(generated_output, torch.from_numpy(target_label).float())
+                generator_loss = G_criterion(generated_output, Variable(torch.from_numpy(target_label).float().cuda(0)))
                 g_loss = generator_loss.data[0]
                 generator_loss.backward()
                 G_optimizer.step()
 
                 # Spatial AE
                 input_label = (np.arange(5) == (label.numpy()[:,None])).astype(float)
-                input_label = torch.from_numpy(input_label)
-                fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_()
+                input_label = torch.from_numpy(input_label).cuda(0)
+                fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_().cuda(0)
 
-                ae_images = G(input_label.float(), fake_noise)
-                ae_loss = G_ssim(ae_images, image)                
+                ae_images = G(Variable(input_label.float()), Variable(fake_noise))
+                ae_loss = G_ssim(ae_images, Variable(image.cuda(0)))
                 ae_loss.backward()
                 G_optimizer.step()
 
