@@ -25,11 +25,8 @@ def generate_batch_images(_g, batch_size, start=0, end=4, prefix="", suffix="", 
         noise = torch.FloatTensor(batch_size, 48, 5, 5).normal_()
         im_outputs = _g(label_one_hot.float(), noise)
         for i, img in enumerate(im_outputs):
-            if img.size(0) == 1:
-                a = img[0]
-            else:
-                a = img
-
+            a = img
+                
             img = transforms.ToPILImage()(a)
-            img = img.convert('RGB')
+            #img = img.convert('RGB')
             img.save(os.path.join(figure_path, "%s-%d-%d-%s.png" % (prefix, n, i, suffix)))

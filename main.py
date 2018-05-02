@@ -20,13 +20,14 @@ from tqdm import tqdm
 from dataset import ImageFilelist
 from utils import generate_batch_images
 import model
+from pytorch_ssim import SSIM
 
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
-        m.weight.data.normal_(0.0, 0.02)
+        m.weight.data.normal_(0.0, 0.05)
     elif classname.find('BatchNorm') != -1:
-        m.weight.data.normal_(1.0, 0.02)
+        m.weight.data.normal_(1.0, 0.05)
         m.bias.data.fill_(0)
 
 def parse_args():
@@ -61,6 +62,7 @@ if __name__ == "__main__":
     learning_rate = 1e-3
 
     dataset = ImageFilelist("./data", "../Textures/texture_list_sample_50", transforms.Compose([
+        transforms.Grayscale(),
         transforms.ToTensor()
     ]))
     data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=True)
@@ -72,9 +74,10 @@ if __name__ == "__main__":
     G.apply(weights_init)
 
     D_criterion = torch.nn.BCEWithLogitsLoss()
-    D_optimizer = torch.optim.Adam(D.parameters(), lr=1e-3)
+    D_optimizer = torch.optim.SGD(D.parameters(), lr=1e-3)
 
     G_criterion = torch.nn.BCEWithLogitsLoss()
+    G_ssim = SSIM()
     G_optimizer = torch.optim.Adam(G.parameters(), lr=1e-3)
 
     pathlib.Path(sample_output).mkdir(parents=True, exist_ok=True)
@@ -83,7 +86,7 @@ if __name__ == "__main__":
     g_loss = 0
     
     d_to_g_threshold = 0.5
-    g_to_d_threshold = 1
+    g_to_d_threshold = 0.3
 
     train_d = True
     train_g = True
@@ -116,7 +119,7 @@ if __name__ == "__main__":
                 G_fake_label = np.random.randint(0, 5, len(image))
                 
                 fake_label_input = (np.arange(5) == (G_fake_label[:,None])).astype(float)
-                fake_label_output = (np.arange(6) == (G_fake_label[:,None])).astype(float)
+                fake_label_output = (np.arange(6) == (fake_label[:,None])).astype(float)
                 noise = torch.FloatTensor(len(image), 48, 5, 5).normal_()
 
                 fake_images = G(torch.from_numpy(fake_label_input).float(), noise)
@@ -143,8 +146,18 @@ if __name__ == "__main__":
                 generator_loss.backward()
                 G_optimizer.step()
 
-            print("Epoch [%d/%d], Iter [%d/%d] D Loss:%.10f, G Loss: %.10f" % (epoch + 1, epochs,
-                                                                i, len(dataset) // batch_size, total_loss.data[0], generator_loss.data[0]), end="\r")
-        print("Epoch [%d/%d], Iter [%d/%d] D Loss:%.10f, G Loss: %.10f" % (epoch + 1, epochs,
-                                                                i, len(dataset) // batch_size, total_loss.data[0], generator_loss.data[0]), end="\n")
+                # Spatial AE
+                input_label = (np.arange(5) == (label.numpy()[:,None])).astype(float)
+                input_label = torch.from_numpy(input_label)
+                fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_()
+
+                ae_images = G(input_label.float(), fake_noise)
+                ae_loss = G_ssim(ae_images, image)                
+                ae_loss.backward()
+                G_optimizer.step()
+
+            print("Epoch [%d/%d], Iter [%d/%d] D Loss:%.8f, G Loss: %.8f, AE Loss: %.8f" % (epoch + 1, epochs,
+                                                                i, len(dataset) // batch_size, total_loss.data[0], generator_loss.data[0], -ae_loss.data[0]), end="\r")
+        print("Epoch [%d/%d], Iter [%d/%d] D Loss:%.8f, G Loss: %.8f, AE Loss: %.8f" % (epoch + 1, epochs,
+                                                                i, len(dataset) // batch_size, total_loss.data[0], generator_loss.data[0], -ae_loss.data[0]), end="\n")
         generate_batch_images(G, 5, figure_path=sample_output, prefix="epoch-%d" % (epoch+1))

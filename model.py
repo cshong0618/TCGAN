@@ -6,7 +6,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         self.feature = nn.Sequential(
-            nn.Conv2d(3, 24, 5, 2, 1),
+            nn.Conv2d(1, 24, 5, 2, 1),
             nn.Conv2d(24, 24, 5, 2, 1),
             nn.BatchNorm2d(24),
             nn.LeakyReLU(),
@@ -40,10 +40,17 @@ class Generator(nn.Module):
 
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(48, 48, 8, 2, 1),
+            nn.LeakyReLU(),            
             nn.ConvTranspose2d(48, 48, 6, 2, 1),
             nn.LeakyReLU(),
+            nn.ConvTranspose2d(48, 72, 3, 1, 1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(72, 48, 3, 1, 1),
+            nn.LeakyReLU(),
+            
             nn.ConvTranspose2d(48, 24, 6, 2, 1),
-            nn.ConvTranspose2d(24, 3, 8, 2, 1),
+            nn.LeakyReLU(),            
+            nn.ConvTranspose2d(24, 1, 8, 2, 1),
             nn.Tanh()
         )
 
