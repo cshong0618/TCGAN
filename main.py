@@ -162,7 +162,7 @@ if __name__ == "__main__":
                 G_optimizer.step()
 
             print("Epoch [%d/%d], Iter [%d/%d] D Loss:%.8f, G Loss: %.8f, AE Loss: %.8f" % (epoch + 1, epochs,
-                                                                i, len(dataset) // batch_size, total_loss.data[0], generator_loss.data[0], -ae_loss.data[0]), end="\r")
+                                                                i, len(dataset) // batch_size, torch.mean(total_loss.data), torch.mean(generator_loss.data), -torch.mean(ae_loss.data)), end="\r")
         print("Epoch [%d/%d], Iter [%d/%d] D Loss:%.8f, G Loss: %.8f, AE Loss: %.8f" % (epoch + 1, epochs,
-                                                                i, len(dataset) // batch_size, total_loss.data[0], generator_loss.data[0], -ae_loss.data[0]), end="\n")
+                                                                i, len(dataset) // batch_size, torch.mean(total_loss.data), torch.mean(generator_loss.data), -torch.mean(ae_loss.data)), end="\n")
         generate_batch_images(G, 5, figure_path=sample_output, prefix="epoch-%d" % (epoch+1))

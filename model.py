@@ -41,15 +41,20 @@ class Generator(nn.Module):
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(48, 48, 8, 2, 1),
             nn.LeakyReLU(),            
+            nn.ConvTranspose2d(48, 48, 3, 1, 1),
+            nn.LeakyReLU(),            
+            nn.ConvTranspose2d(48, 48, 3, 1, 1),
+            nn.LeakyReLU(),            
             nn.ConvTranspose2d(48, 48, 6, 2, 1),
             nn.LeakyReLU(),
             nn.ConvTranspose2d(48, 48, 3, 1, 1),
+            nn.LeakyReLU(),            
+            nn.ConvTranspose2d(48, 48, 3, 1, 1),
             nn.LeakyReLU(),
-            
             nn.ConvTranspose2d(48, 24, 6, 2, 1),
             nn.LeakyReLU(),            
             nn.ConvTranspose2d(24, 3, 8, 2, 1),
-            nn.Tanh()
+            nn.Tanh(),
         )
 
         self.feature_conditioner = nn.Sequential(
