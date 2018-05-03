@@ -41,16 +41,24 @@ class Generator(nn.Module):
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(48, 48, 8, 2, 1),
             nn.LeakyReLU(),            
-            nn.ConvTranspose2d(48, 48, 3, 1, 1),
+            nn.Conv2d(48, 48, 1),
             nn.LeakyReLU(),            
-            nn.ConvTranspose2d(48, 48, 3, 1, 1),
+            nn.Conv2d(48, 48, 1),
+            nn.LeakyReLU(),    
+            nn.Conv2d(48, 48, 1),
+            nn.LeakyReLU(),            
+            nn.Conv2d(48, 48, 1),
             nn.LeakyReLU(),            
             nn.ConvTranspose2d(48, 48, 6, 2, 1),
             nn.LeakyReLU(),
-            nn.ConvTranspose2d(48, 48, 3, 1, 1),
+            nn.Conv2d(48, 48, 1),
             nn.LeakyReLU(),            
-            nn.ConvTranspose2d(48, 48, 3, 1, 1),
+            nn.Conv2d(48, 48, 1),
             nn.LeakyReLU(),
+            nn.Conv2d(48, 48, 1),
+            nn.LeakyReLU(),            
+            nn.Conv2d(48, 48, 1),
+            nn.LeakyReLU(),    
             nn.ConvTranspose2d(48, 24, 6, 2, 1),
             nn.LeakyReLU(),            
             nn.ConvTranspose2d(24, 3, 8, 2, 1),
@@ -58,16 +66,24 @@ class Generator(nn.Module):
         )
 
         self.feature_conditioner = nn.Sequential(
-            nn.Linear(input_class, 120),
+            nn.Linear(input_class, 1 * 5 * 5),
+            nn.LeakyReLU()
+        )
+
+        self.feature_conv = nn.Sequential(
+            nn.Conv2d(1, 12, 1),
             nn.LeakyReLU(),
-            nn.Linear(120, 48 * 5 * 5),
+            nn.Conv2d(12, 24, 1),
+            nn.LeakyReLU(),
+            nn.Conv2d(24, 48, 1),
             nn.LeakyReLU()
         )
 
     def forward(self, x, noise):
         x = self.feature_conditioner(x)
         #print(x.size())
-        x = x.view(x.size(0), 48, 5, 5)
+        x = x.view(x.size(0), 1, 5, 5)
+        x = self.feature_conv(x)
         noise = noise + x
 
         output = self.decoder(noise)

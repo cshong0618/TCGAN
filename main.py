@@ -99,7 +99,7 @@ if __name__ == "__main__":
     train_d = True
     train_g = True
 
-    conditional_training = True
+    conditional_training = False
     for epoch in tqdm(range(epochs)):
         for i, (image, label) in enumerate(data_loader):
             if conditional_training:
