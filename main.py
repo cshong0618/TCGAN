@@ -141,19 +141,6 @@ if __name__ == "__main__":
                 d_loss = total_loss.data[0]
 
             if train_g:
-                fake_label = np.random.randint(0, 5, len(image))
-                fake_label_input = (np.arange(5) == (fake_label[:,None])).astype(float)
-                fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_().cuda(0)
-
-                generated_images = G(Variable(torch.from_numpy(fake_label_input).float().cuda(0)), Variable(fake_noise))
-                generated_output = D(generated_images.detach())
-
-                target_label = (np.arange(6) == (fake_label[:,None])).astype(float)
-                generator_loss = G_criterion(generated_output, Variable(torch.from_numpy(target_label).float().cuda(0)))
-                g_loss = generator_loss.data[0]
-                generator_loss.backward()
-                G_optimizer.step()
-
                 # Spatial AE
                 input_label = (np.arange(5) == (label.numpy()[:,None])).astype(float)
                 input_label = torch.from_numpy(input_label).cuda(0)
@@ -169,6 +156,20 @@ if __name__ == "__main__":
                 #ae_loss = l1_loss - ae_loss
                 ae_loss.backward()
                 G_optimizer.step()
+
+                fake_label = np.random.randint(0, 5, len(image))
+                fake_label_input = (np.arange(5) == (fake_label[:,None])).astype(float)
+                fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_().cuda(0)
+
+                generated_images = G(Variable(torch.from_numpy(fake_label_input).float().cuda(0)), Variable(fake_noise))
+                generated_output = D(generated_images.detach())
+
+                target_label = (np.arange(6) == (fake_label[:,None])).astype(float)
+                generator_loss = G_criterion(generated_output, Variable(torch.from_numpy(target_label).float().cuda(0)))
+                g_loss = generator_loss.data[0]
+                generator_loss.backward()
+                G_optimizer.step()
+
 
             print("Epoch [%d/%d], Iter [%d/%d] D Loss:%.8f, G Loss: %.8f, AE Loss: %.8f" % (epoch + 1, epochs,
                                                                 i, len(dataset) // batch_size, torch.mean(total_loss.data), torch.mean(generator_loss.data), -torch.mean(ae_loss.data)), end="\r")
