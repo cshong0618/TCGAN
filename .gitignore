@@ -2,3 +2,5 @@ training
 __pycache__
 ct
 color
+*
+!*.py

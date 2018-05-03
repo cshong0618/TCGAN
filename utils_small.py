@@ -22,7 +22,7 @@ def generate_batch_images(_g, batch_size, start=0, end=5, prefix="", suffix="", 
         label = np.full((batch_size, 1), n)
         label_one_hot = (np.arange(5) == label[:,None]).astype(np.float)
         label_one_hot = torch.from_numpy(label_one_hot)
-        noise = torch.FloatTensor(batch_size, 512, 4, 4).normal_().cuda()
+        noise = torch.FloatTensor(batch_size, 48, 5, 5).normal_().cuda()
         im_outputs = _g(Variable(label_one_hot.float().cuda()), Variable(noise))
         for i, img in enumerate(im_outputs):
             a = img.data.cpu()

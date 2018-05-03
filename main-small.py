@@ -18,7 +18,7 @@ import numpy as np
 from tqdm import tqdm
 
 from dataset import ImageFilelist
-from utils import generate_batch_images
+from utils_small import generate_batch_images
 import model
 from pytorch_ssim import SSIM
 from pytorch_msssim import MSSSIM
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=True)
 
     D = model.Discriminator(6)
-    G = model.VGG_VAE(5)
+    G = model.Generator(5)
 
     D.apply(weights_init)
     G.apply(weights_init)
@@ -130,7 +130,7 @@ if __name__ == "__main__":
                 
                 fake_label_input = (np.arange(5) == (G_fake_label[:,None])).astype(float)
                 fake_label_output = (np.arange(6) == (fake_label[:,None])).astype(float)
-                noise = torch.FloatTensor(len(image), 512, 4, 4).normal_().cuda()
+                noise = torch.FloatTensor(len(image), 48, 5, 5).normal_().cuda()
 
                 fake_images = G(Variable(torch.from_numpy(fake_label_input).float().cuda()), Variable(noise))
                 fake_output = D(fake_images.detach())
@@ -146,7 +146,7 @@ if __name__ == "__main__":
                 # Spatial AE
                 input_label = (np.arange(5) == (label.numpy()[:,None])).astype(float)
                 input_label = torch.from_numpy(input_label).cuda()
-                fake_noise = torch.FloatTensor(len(image), 512, 4, 4).normal_().cuda()
+                fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_().cuda()
 
                 ae_images = G(Variable(input_label.float()), Variable(fake_noise))
                 #l1_loss = G_l1(ae_images, Variable(image.cuda(0)))
@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
                 fake_label = np.random.randint(0, 5, len(image))
                 fake_label_input = (np.arange(5) == (fake_label[:,None])).astype(float)
-                fake_noise = torch.FloatTensor(len(image), 512, 4, 4).normal_().cuda()
+                fake_noise = torch.FloatTensor(len(image), 48, 5, 5).normal_().cuda()
 
                 generated_images = G(Variable(torch.from_numpy(fake_label_input).float().cuda()), Variable(fake_noise))
                 generated_output = D(generated_images.detach())

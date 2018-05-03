@@ -91,3 +91,58 @@ class Generator(nn.Module):
         #print(output.size())
 
         return output
+
+class VGG_VAE(nn.Module):
+    def __init__(self, input_size=60, output_size=64):
+        super(VGG_VAE, self).__init__()
+        self.input_size = input_size
+        self.output_size = output_size
+
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(512, 512, kernel_size=5, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(512, 512, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(512, 512, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(512, 512, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(512, 512, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(512, 256, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(256, 256, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(256, 256, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(256, 128, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(128, 128, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(128, 64, kernel_size=5, stride=1, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(64, 64, kernel_size=5, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.ConvTranspose2d(64, 3, kernel_size=14, stride=2, padding=1),
+            nn.Tanh()            
+        )
+
+        self.fc_out = nn.Sequential(
+            #nn.Linear(self.input_size, 3 * output_size * output_size),
+            nn.Linear(self.input_size, 512 * 4 * 4),
+            nn.Tanh()
+        )
+    def forward(self, x, noise):
+        #print(x.size())
+        fc = self.fc_out(x)
+
+        fc = fc.view(fc.size(0), 512, 4, 4)
+        noise = noise + fc
+        decoded = self.decoder(noise)
+
+        #print(decoded.size())
+        output = decoded
+        #fc = fc.view(fc.size(0), 3, self.output_size, self.output_size)
+        #output = fc + decoded
+
+        return output
